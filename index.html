@@ -1,196 +1,52 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>죽림고수: 살아남은 시간 기반 점수</title>
-  <style>
-    body {
-      margin: 0;
-      overflow: hidden;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background-color: #f0f0f0;
-    }
-    canvas {
-      display: block;
-      background-color: #d4efdf;
-      border-radius: 50%;
-    }
-    .score {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      font-size: 20px;
-      font-family: Arial, sans-serif;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dual Online Game</title>
+<style>
+ body{margin:0;display:flex;height:100vh;background:#f0f0f0;font-family:Arial,sans-serif;}
+ #left,#right{flex:1;position:relative;display:flex;justify-content:center;align-items:center;}
+ canvas{background:#d4efdf;border-radius:50%;}
+ .score{position:absolute;top:10px;left:10px;}
+ #scoresBoard{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;padding:10px;border:1px solid #ccc;display:none;}
+</style>
 </head>
 <body>
-  <div class="score">Score: 0</div>
-  <canvas id="gameCanvas"></canvas>
-  <script>
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    const size = Math.min(window.innerWidth, window.innerHeight) * 0.9;
-    canvas.width = size;
-    canvas.height = size;
-
-    // 원형 맵과 플레이어 설정
-    const centerX = canvas.width / 2;
-    const centerY = canvas.height / 2;
-    const radius = canvas.width / 2 - 10; // 원형 맵의 반지름
-    const player = {
-      x: centerX,
-      y: centerY,
-      size: 15,
-      color: 'blue',
-      speed: 5
-    };
-
-    // 화살 설정
-    const arrows = [];
-    const initialArrowCount = 2; // 초기에 생성되는 화살 개수
-    const maxArrowCount = 10; // 최대 생성되는 화살 개수
-    let currentArrowCount = initialArrowCount;
-    const arrowSpeed = 3;
-
-    // 게임 상태
-    let startTime = Date.now();
-    let score = 0;
-    let gameRunning = true;
-
-    // 방향키 입력 상태
-    const keys = {
-      ArrowUp: false,
-      ArrowDown: false,
-      ArrowLeft: false,
-      ArrowRight: false
-    };
-
-    // 키 이벤트
-    document.addEventListener('keydown', (e) => {
-      if (keys.hasOwnProperty(e.key)) keys[e.key] = true;
-    });
-    document.addEventListener('keyup', (e) => {
-      if (keys.hasOwnProperty(e.key)) keys[e.key] = false;
-    });
-
-    // 화살 생성
-    function createArrows() {
-      for (let i = 0; i < currentArrowCount; i++) {
-        const angle = Math.random() * Math.PI * 2; // 0 ~ 2π (랜덤 방향)
-        const x = centerX + radius * Math.cos(angle);
-        const y = centerY + radius * Math.sin(angle);
-
-        // 플레이어의 현재 위치를 타겟으로 설정
-        const dx = player.x - x;
-        const dy = player.y - y;
-        const magnitude = Math.sqrt(dx * dx + dy * dy);
-        const vx = (dx / magnitude) * arrowSpeed; // 속도를 방향으로 나눔
-        const vy = (dy / magnitude) * arrowSpeed;
-
-        arrows.push({ x, y, vx, vy, size: 10, color: 'red' });
-      }
-    }
-
-    // 충돌 감지
-    function checkCollision(player, arrow) {
-      const dx = player.x - arrow.x;
-      const dy = player.y - arrow.y;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      return distance < player.size + arrow.size;
-    }
-
-    // 점수 계산 (살아남은 시간 기반)
-    function updateScore() {
-      const currentTime = Date.now();
-      score = Math.floor((currentTime - startTime) / 10); // 1초 = 100점
-    }
-
-    // 게임 업데이트
-    function update() {
-      // 플레이어 이동
-      if (keys.ArrowUp && player.y > centerY - radius + player.size) player.y -= player.speed;
-      if (keys.ArrowDown && player.y < centerY + radius - player.size) player.y += player.speed;
-      if (keys.ArrowLeft && player.x > centerX - radius + player.size) player.x -= player.speed;
-      if (keys.ArrowRight && player.x < centerX + radius - player.size) player.x += player.speed;
-
-      // 화살 이동 및 충돌 체크
-      for (let i = arrows.length - 1; i >= 0; i--) {
-        const arrow = arrows[i];
-        arrow.x += arrow.vx;
-        arrow.y += arrow.vy;
-
-        if (checkCollision(player, arrow)) {
-          gameRunning = false;
-        }
-
-        // 화살이 맵 바깥으로 나가면 제거
-        if (
-          arrow.x < centerX - radius || arrow.x > centerX + radius ||
-          arrow.y < centerY - radius || arrow.y > centerY + radius
-        ) {
-          arrows.splice(i, 1);
-        }
-      }
-
-      // 점수 업데이트
-      updateScore();
-    }
-
-    // 화면 렌더링
-    function render() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // 원형 맵 그리기
-      ctx.strokeStyle = 'black';
-      ctx.lineWidth = 5;
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-      ctx.stroke();
-
-      // 플레이어 그리기
-      ctx.fillStyle = player.color;
-      ctx.beginPath();
-      ctx.arc(player.x, player.y, player.size, 0, Math.PI * 2);
-      ctx.fill();
-
-      // 화살 그리기
-      arrows.forEach((arrow) => {
-        ctx.fillStyle = arrow.color;
-        ctx.beginPath();
-        ctx.arc(arrow.x, arrow.y, arrow.size, 0, Math.PI * 2);
-        ctx.fill();
-      });
-
-      // 점수 표시
-      document.querySelector('.score').textContent = `Score: ${score}`;
-    }
-
-    // 게임 루프
-    function gameLoop() {
-      if (!gameRunning) {
-        alert(`Game Over! Your Score: ${score}`);
-        window.location.reload();
-        return;
-      }
-      update();
-      render();
-      requestAnimationFrame(gameLoop);
-    }
-
-    // 일정 시간마다 화살 생성 및 난이도 증가
-    setInterval(() => {
-      if (currentArrowCount < maxArrowCount) {
-        currentArrowCount++; // 화살 개수 증가
-      }
-      createArrows();
-    }, 1500); // 1.5초마다 화살 생성
-
-    // 게임 시작
-    gameLoop();
-  </script>
+<div id="left">
+ <div class="score" id="myScore">Score: 0</div>
+ <canvas id="myCanvas"></canvas>
+</div>
+<div id="right">
+ <div class="score" id="opScore">Opponent: 0</div>
+ <canvas id="opCanvas"></canvas>
+</div>
+<div id="scoresBoard"></div>
+<script>
+const ws=new WebSocket(`ws://${location.host}`);
+const myCanvas=document.getElementById('myCanvas');
+const opCanvas=document.getElementById('opCanvas');
+const myCtx=myCanvas.getContext('2d');
+const opCtx=opCanvas.getContext('2d');
+const size=Math.min(window.innerWidth,window.innerHeight)*0.45;
+myCanvas.width=myCanvas.height=opCanvas.width=opCanvas.height=size;
+const center=size/2;const radius=center-10;
+const player={x:center,y:center,size:15,color:'blue',speed:5};
+const opponent={x:center,y:center,size:15,color:'green'};
+const arrows=[];let arrowCount=2;const maxArrowCount=10;const arrowSpeed=3;
+let score=0;let start=Date.now();let running=true;
+const keys={ArrowUp:false,ArrowDown:false,ArrowLeft:false,ArrowRight:false};
+document.addEventListener('keydown',e=>{if(keys.hasOwnProperty(e.key)) keys[e.key]=true;});
+document.addEventListener('keyup',e=>{if(keys.hasOwnProperty(e.key)) keys[e.key]=false;});
+function createArrows(){for(let i=0;i<arrowCount;i++){const angle=Math.random()*Math.PI*2;const x=center+radius*Math.cos(angle);const y=center+radius*Math.sin(angle);const dx=player.x-x;const dy=player.y-y;const m=Math.sqrt(dx*dx+dy*dy);arrows.push({x,y,vx:(dx/m)*arrowSpeed,vy:(dy/m)*arrowSpeed,size:10,color:'red'});}}
+function collide(a,b){const dx=a.x-b.x,dy=a.y-b.y;return Math.sqrt(dx*dx+dy*dy)<a.size+b.size;}
+function update(){if(keys.ArrowUp&&player.y>center-radius+player.size)player.y-=player.speed;if(keys.ArrowDown&&player.y<center+radius-player.size)player.y+=player.speed;if(keys.ArrowLeft&&player.x>center-radius+player.size)player.x-=player.speed;if(keys.ArrowRight&&player.x<center+radius-player.size)player.x+=player.speed;for(let i=arrows.length-1;i>=0;i--){const a=arrows[i];a.x+=a.vx;a.y+=a.vy;if(collide(player,a))running=false;if(a.x<center-radius||a.x>center+radius||a.y<center-radius||a.y>center+radius)arrows.splice(i,1);}score=Math.floor((Date.now()-start)/10);document.getElementById('myScore').textContent=`Score: ${score}`;ws.send(JSON.stringify({type:'state',x:player.x,y:player.y,score}));}
+function drawMap(ctx){ctx.strokeStyle='black';ctx.lineWidth=5;ctx.beginPath();ctx.arc(center,center,radius,0,Math.PI*2);ctx.stroke();}
+function render(){myCtx.clearRect(0,0,size,size);drawMap(myCtx);myCtx.fillStyle=player.color;myCtx.beginPath();myCtx.arc(player.x,player.y,player.size,0,Math.PI*2);myCtx.fill();arrows.forEach(a=>{myCtx.fillStyle=a.color;myCtx.beginPath();myCtx.arc(a.x,a.y,a.size,0,Math.PI*2);myCtx.fill();});opCtx.clearRect(0,0,size,size);drawMap(opCtx);opCtx.fillStyle=opponent.color;opCtx.beginPath();opCtx.arc(opponent.x,opponent.y,opponent.size,0,Math.PI*2);opCtx.fill();}
+function loop(){if(!running){ws.send(JSON.stringify({type:'score',name:'player',score}));fetch('/scores').then(r=>r.json()).then(showScores);return;}update();render();requestAnimationFrame(loop);}
+ws.onmessage=e=>{const msg=JSON.parse(e.data);if(msg.type==='state'){opponent.x=msg.x;opponent.y=msg.y;document.getElementById('opScore').textContent=`Opponent: ${msg.score}`;}};
+function showScores(list){const div=document.getElementById('scoresBoard');div.innerHTML='<h3>High Scores</h3><ol>'+list.map(s=>`<li>${s.name}: ${s.score}</li>`).join('')+'</ol>';div.style.display='block';}
+setInterval(()=>{if(arrowCount<maxArrowCount)arrowCount++;createArrows();},1500);createArrows();loop();
+</script>
 </body>
 </html>
